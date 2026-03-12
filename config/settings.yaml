@@ -1,0 +1,78 @@
+# ============================================================
+# settings.yaml — Non-secret system configuration
+# Edit these values to tune system behavior
+# ============================================================
+
+job_discovery:
+  portals: [linkedin, naukri, indeed, glassdoor, instahiring]
+  max_age_hours: 48           # Only process jobs posted within 48 hours
+  run_interval_hours: 6       # Cron frequency
+  min_match_score: 70         # Minimum AI match score to queue a job
+
+application:
+  daily_limit_per_portal: 25  # Max applications per portal per day
+  delay_min_seconds: 2        # Min human-like delay between actions
+  delay_max_seconds: 8        # Max human-like delay between actions
+  platforms:
+    - linkedin_easy_apply
+    - naukri_quick_apply
+    - indeed_easy_apply
+    - angellist
+
+resume:
+  ats_min_score: 75           # Minimum ATS score before submission
+  max_retry_attempts: 1       # Retry tailoring once if ATS < 75
+  output_dir: resumes/
+  latex_engine: xelatex       # xelatex or pdflatex
+
+email_monitor:
+  run_interval_hours: 2
+  max_emails_per_run: 50
+  interview_keywords:
+    - interview
+    - schedule
+    - invitation
+    - shortlisted
+    - assessment
+    - test link
+  rejection_keywords:
+    - regret
+    - unfortunately
+    - not moving forward
+    - other candidates
+    - not selected
+    - not proceed
+  parse_confidence_threshold: 0.80
+
+llm:
+  primary: gemini             # gemini or groq
+  fallback: groq
+  model_gemini: gemini-1.5-flash    # Free tier model
+  model_groq: llama3-70b-8192       # Free tier model
+  max_retries: 3
+  timeout_seconds: 30
+  max_tokens: 4096
+
+notifications:
+  telegram_enabled: true
+  notify_on:
+    - jobs_queued
+    - applied
+    - needs_human
+    - interview_scheduled
+    - rejected
+    - prep_ready
+    - error
+    - daily_summary
+
+logging:
+  level: INFO                 # DEBUG, INFO, WARNING, ERROR
+  format: json
+  dir: logs/
+  retention_days: 30
+
+data_retention:
+  rejected_jobs_days: 90
+  ghosted_jobs_days: 90
+  skipped_jobs_days: 30
+  resumes_days: 180

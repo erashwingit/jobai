@@ -1,0 +1,80 @@
+# ============================================================
+# .gitignore — AI Job Application Automation System
+# SECURITY: All items here must NEVER be committed
+# ============================================================
+
+# --- Secrets & Credentials (CRITICAL) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+token.json
+credentials.json
+google_credentials.json
+*_session.json
+.secrets.baseline
+
+# --- Generated Outputs ---
+resumes/
+logs/
+data/retry_queue.json
+job_tracker.db
+*.db
+*.db-shm
+*.db-wal
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.venv/
+venv/
+ENV/
+env/
+.virtualenv
+
+# --- LaTeX Build Artifacts ---
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# --- IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# --- Testing ---
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# --- Playwright ---
+playwright-report/
+test-results/

@@ -1,0 +1,121 @@
+# ============================================================
+# master_resume.yaml — RenderCV Master Resume
+# Pipeline: YAML → LaTeX → PDF
+# Docs: https://docs.rendercv.com
+# ============================================================
+
+cv:
+  name: Ashvani
+  location: Bangalore, India
+  email: ashvani@example.com
+  phone: "+91-XXXXXXXXXX"
+  website: https://ashvani.dev
+  social_networks:
+    - network: LinkedIn
+      username: ashvani
+    - network: GitHub
+      username: ashvani
+
+  sections:
+    summary:
+      - AI/ML Engineer with 3+ years building production LLM applications, ML pipelines,
+        and Python backends. Experienced in fine-tuning LLMs, RAG architectures, and
+        MLOps. Strong open-source contributor with a focus on practical AI automation.
+
+    experience:
+      - company: Your Current Company
+        position: AI/ML Engineer
+        location: Bangalore, India
+        start_date: "2022-06"
+        end_date: present
+        highlights:
+          - Built RAG-based document Q&A system using LangChain + Pinecone, reducing
+            manual search time by 70%
+          - Developed FastAPI microservices for ML model serving, handling 10K+ req/day
+          - Fine-tuned LLaMA-2 7B on domain-specific data using LoRA, achieving 15%
+            improvement in task accuracy
+          - Containerized ML workflows with Docker/Kubernetes on GCP, cutting deploy
+            time from 2 hours to 15 minutes
+
+      - company: Previous Company
+        position: Python Developer
+        location: Remote
+        start_date: "2021-01"
+        end_date: "2022-05"
+        highlights:
+          - Designed REST APIs with FastAPI + PostgreSQL serving 50K+ monthly active users
+          - Automated data pipelines using Apache Airflow, processing 5M records/day
+          - Implemented CI/CD with GitHub Actions, reducing release cycle from weekly
+            to daily
+
+    projects:
+      - name: AI Job Application Automation System
+        date: "2026"
+        highlights:
+          - Built fully automated job application pipeline with 5 AI-powered modules
+          - Integrates Gemini API, Google Workspace APIs, Playwright, and LaTeX pipeline
+          - Saves 10-15 hours/week on job search activities
+        url: https://github.com/ashvani/job-bot
+
+      - name: LLM Evaluation Framework
+        date: "2025"
+        highlights:
+          - Open-source tool for benchmarking LLMs on custom datasets
+          - 500+ GitHub stars, used by 50+ organizations
+        url: https://github.com/ashvani/llm-eval
+
+    education:
+      - institution: Your University
+        area: Computer Science / AI
+        degree: B.Tech
+        start_date: "2017-08"
+        end_date: "2021-05"
+        highlights:
+          - "CGPA: 8.5/10"
+          - Thesis: Attention mechanisms in transformer architectures
+
+    skills:
+      - label: AI/ML
+        details: PyTorch, TensorFlow, Hugging Face, LangChain, LlamaIndex, RAG,
+                 Fine-tuning, LoRA, Prompt Engineering, Vector DBs (Pinecone, Chroma)
+      - label: Languages
+        details: Python (expert), SQL, JavaScript, Bash
+      - label: Backend
+        details: FastAPI, Django, REST APIs, gRPC, PostgreSQL, Redis, Celery
+      - label: Infrastructure
+        details: Docker, Kubernetes, GitHub Actions, GCP, AWS, Terraform
+      - label: Tools
+        details: Git, pytest, Playwright, Airflow, MLflow, Weights & Biases
+
+design:
+  theme: classic
+  font: Source Sans 3
+  font_size: 10pt
+  page_size: a4paper
+  color: "#004f90"
+  disable_external_link_icons: false
+  disable_page_numbering: false
+  page_numbering_style: NAME - Page PAGE_NUMBER of TOTAL_PAGES
+  disable_last_updated_date: false
+  header_font_size: 30pt
+  text_alignment: left-aligned
+  margins:
+    page:
+      top: 2cm
+      bottom: 2cm
+      left: 2cm
+      right: 2cm
+    section_title:
+      top: 0.3cm
+      bottom: 0.2cm
+    entry_area:
+      left_and_right: 0.2cm
+      vertical_between: 0.2cm
+    highlights_area:
+      top: 0.10cm
+      left: 0.4cm
+      vertical_between_bullet_points: 0.10cm
+    header:
+      vertical_between_name_and_connections: 5pt
+      bottom: 5pt
+      horizontal_between_connections: 0.5cm

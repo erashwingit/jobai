@@ -1,0 +1,70 @@
+# ============================================================
+# profile.yaml — Ashvani's job search preferences
+# This file drives AI filtering and resume tailoring
+# ============================================================
+
+candidate:
+  name: Ashvani
+  email: ashvani@example.com        # Update with real email
+  phone: "+91-XXXXXXXXXX"           # Update with real phone
+  linkedin_url: https://linkedin.com/in/ashvani
+  github_url: https://github.com/ashvani
+  portfolio_url: https://ashvani.dev
+
+  # --- Target Roles (ordered by preference) ---
+  target_roles:
+    - AI Engineer
+    - ML Engineer
+    - LLM Engineer
+    - Python Developer
+    - Backend Engineer
+    - MLOps Engineer
+
+  # --- Target Locations ---
+  target_locations:
+    - Remote
+    - Bangalore
+    - Hyderabad
+    - Mumbai
+    - Pune
+
+  experience_years: 3
+
+  # --- Skills ---
+  skills_primary:
+    - Python
+    - Machine Learning
+    - LLMs
+    - FastAPI
+    - Docker
+    - NLP
+    - PyTorch
+
+  skills_secondary:
+    - React
+    - PostgreSQL
+    - AWS
+    - GCP
+    - Kubernetes
+    - Redis
+
+  # --- Preferences ---
+  min_salary_lpa: 12
+  max_commute_km: 30
+  work_mode: [remote, hybrid]       # remote, hybrid, onsite
+  employment_type: [full-time]      # full-time, contract, part-time
+
+  # --- Exclusions ---
+  exclude_companies: []             # Add company names to skip
+  exclude_keywords:
+    - internship
+    - unpaid
+    - contract-only
+    - fresher only
+    - 0-1 years
+
+  # --- Summary for LLM context ---
+  professional_summary: >
+    AI/ML Engineer with 3 years of experience building production LLM applications,
+    ML pipelines, and Python backends. Passionate about generative AI, automation,
+    and building developer tools. Strong portfolio of open-source projects.
