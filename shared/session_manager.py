@@ -14,6 +14,7 @@ logger = get_logger(__name__)
 
 COOKIE_FILE = Path(os.path.expanduser("~/.config/ashvani-job-bot/cookies.enc"))
 COOKIE_SECRET = os.getenv("COOKIE_SECRET", "")
+_MIN_SECRET_LENGTH = 32
 
 
 class CookieExpiredError(Exception):
@@ -44,6 +45,13 @@ def _decrypt_cookies() -> dict:
             "Add COOKIE_SECRET to your .env file."
         )
 
+    if len(COOKIE_SECRET) < _MIN_SECRET_LENGTH:
+        raise CookieExpiredError(
+            f"COOKIE_SECRET must be at least {_MIN_SECRET_LENGTH} characters "
+            f"(got {len(COOKIE_SECRET)}). "
+            "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
+        )
+
     try:
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
         from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
@@ -53,7 +61,7 @@ def _decrypt_cookies() -> dict:
 
         # Derive key using same scrypt params as Node.js
         salt = bytes.fromhex(payload["salt"])
-        kdf = Scrypt(salt=salt, length=32, n=2**14, r=8, p=1, backend=default_backend())
+        kdf = Scrypt(salt=salt, length=32, n=2**16, r=8, p=1, backend=default_backend())
         key = kdf.derive(COOKIE_SECRET.encode())
 
         # Decrypt AES-256-GCM

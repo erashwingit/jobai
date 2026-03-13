@@ -13,6 +13,7 @@ from modules.application.human_checkpoint import (
     flag_for_human, REASON_CAPTCHA, REASON_COMPLEX_FORM
 )
 from shared.session_manager import CookieExpiredError, check_cookie_health
+from shared.internal_auth import sign_request
 from shared.database import update_job_status
 from shared.telegram_notifier import notify_applied
 from shared.logger import get_logger
@@ -76,6 +77,7 @@ class LinkedInBot:
                     "role": role,
                     "resume_path": str(pdf_path.resolve()),
                 },
+                headers=sign_request(portal="linkedin", job_id=job_id),
                 timeout=120.0,
             )
             result = response.json()

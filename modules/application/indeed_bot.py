@@ -60,6 +60,7 @@ class IndeedBot:
                     "role": role,
                     "resume_path": str(pdf_path.resolve()),
                 },
+                headers=sign_request(portal="indeed", job_id=job_id),
                 timeout=120.0,
             )
             result = response.json()

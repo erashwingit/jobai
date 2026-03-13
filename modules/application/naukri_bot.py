@@ -61,6 +61,7 @@ class NaukriBot:
                     "role": role,
                     "resume_path": str(pdf_path.resolve()),
                 },
+                headers=sign_request(portal="naukri", job_id=job_id),
                 timeout=120.0,
             )
             result = response.json()

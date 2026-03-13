@@ -97,7 +97,7 @@ async function main() {
   // Encrypt with AES-256-GCM
   const salt = crypto.randomBytes(16).toString('hex');
   const iv = crypto.randomBytes(12);
-  const key = crypto.scryptSync(cookieSecret, salt, 32);
+  const key = crypto.scryptSync(cookieSecret, salt, 32, { N: 65536 }); // OWASP minimum
 
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
   const plaintext = JSON.stringify(allCookies);
