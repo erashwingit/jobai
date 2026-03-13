@@ -1,0 +1,245 @@
+# =============================================================================
+# config/profile.yaml.example — Master candidate profile example
+#
+# Copy this file to config/profile.yaml and replace all values with your own.
+# This file drives:
+#   - LLM-based job-fit scoring (match_scorer.py)
+#   - Resume tailoring per job (tailoring_engine.py)
+#   - JD keyword matching (jd_analyzer.py)
+#   - Portal search queries (scraper.py)
+# =============================================================================
+
+candidate:
+  # ── Personal Info ───────────────────────────────────────────────────────────
+  name: "Arjun Mehta"
+  email: "arjun.mehta@gmail.com"
+  phone: "+91-98765-43210"
+  location: "Bangalore, India"
+  linkedin_url: "https://linkedin.com/in/arjun-mehta"
+  github_url: "https://github.com/arjunmehta"
+  portfolio_url: "https://arjunmehta.dev"
+
+  # ── Target Roles ────────────────────────────────────────────────────────────
+  # Ordered by preference — top roles get priority in match scoring
+  target_roles:
+    - "AI Engineer"
+    - "Senior AI Engineer"
+    - "ML Engineer"
+    - "LLM Engineer"
+    - "Generative AI Engineer"
+    - "Python Developer"
+    - "Backend Engineer"
+
+  # ── Target Locations ────────────────────────────────────────────────────────
+  target_locations:
+    - "Remote"
+    - "Bangalore"
+    - "Hyderabad"
+    - "Pune"
+    - "Mumbai"
+
+  # ── Experience ──────────────────────────────────────────────────────────────
+  experience_years: 4
+
+  # ── Skills ──────────────────────────────────────────────────────────────────
+  # Primary: skills you're confident interviewing on
+  skills_primary:
+    - Python
+    - Machine Learning
+    - LLMs
+    - Generative AI
+    - FastAPI
+    - PyTorch
+    - NLP
+    - Docker
+    - REST APIs
+    - Prompt Engineering
+
+  # Secondary: familiar but not primary interview topics
+  skills_secondary:
+    - React
+    - PostgreSQL
+    - Redis
+    - AWS
+    - GCP
+    - Kubernetes
+    - Terraform
+    - TypeScript
+
+  # ── Work Preferences ────────────────────────────────────────────────────────
+  min_salary_lpa: 18           # Minimum CTC in Lakhs Per Annum
+  max_commute_km: 25           # Ignored for remote/hybrid
+  work_mode:
+    - remote
+    - hybrid
+  employment_type:
+    - full-time
+
+  # ── Exclusions (jobs matching these are auto-skipped) ─────────────────────
+  exclude_companies:
+    - "Wipro"
+    - "Infosys"
+    - "TCS"
+
+  exclude_keywords:
+    - internship
+    - unpaid
+    - fresher only
+    - 0-1 years
+    - "no LLM"
+
+  # ── Professional Summary (used for LLM context) ───────────────────────────
+  professional_summary: >
+    AI/ML Engineer with 4 years building production-grade LLM applications,
+    recommendation systems, and Python microservices. Led AI platform development
+    at Series-B startup. Strong open-source track record and expertise in
+    generative AI, RAG pipelines, and developer tooling.
+
+# =============================================================================
+# Master Resume (used by tailoring_engine.py to generate tailored YAML)
+# =============================================================================
+
+resume:
+
+  # ── Work Experience ─────────────────────────────────────────────────────────
+  experience:
+
+    - company: "IntelliFlow AI"
+      role: "Senior AI Engineer"
+      location: "Bangalore, India (Remote)"
+      start_date: "Jan 2023"
+      end_date: "Present"
+      description: >
+        Led development of an enterprise RAG platform serving 50k+ queries/day
+        using LangChain, ChromaDB, and Gemini Pro. Reduced hallucination rate
+        by 34% via hybrid retrieval and re-ranking. Managed a team of 3 engineers.
+      bullets:
+        - "Built end-to-end RAG pipeline (ingestion → chunking → embedding → retrieval) handling 50k+ daily queries"
+        - "Reduced hallucination rate by 34% through hybrid BM25 + dense retrieval and cross-encoder re-ranking"
+        - "Designed multi-tenant LLM router (Gemini Pro / GPT-4 / Claude) with automatic cost optimisation"
+        - "Deployed on GKE with autoscaling; reduced p95 latency from 4.2s to 1.1s"
+        - "Led 3-engineer team; introduced GitOps workflow with ArgoCD and 90% test coverage"
+      tech_stack:
+        - Python
+        - LangChain
+        - Gemini Pro
+        - ChromaDB
+        - FastAPI
+        - GKE
+        - PostgreSQL
+
+    - company: "DataNest Technologies"
+      role: "ML Engineer"
+      location: "Hyderabad, India"
+      start_date: "Jul 2021"
+      end_date: "Dec 2022"
+      description: >
+        Built real-time recommendation engine for an e-commerce platform with
+        8M monthly active users. Improved CTR by 22% using collaborative filtering
+        and transformer-based user embeddings.
+      bullets:
+        - "Designed collaborative filtering + content-based hybrid recommender serving 8M MAU"
+        - "Improved product click-through rate by 22% through A/B tested transformer user embeddings"
+        - "Built real-time feature pipeline with Apache Kafka + Redis; reduced feature freshness from 24h to 2min"
+        - "Automated model retraining with Airflow DAGs; cut manual ops time by 60%"
+        - "Wrote internal MLOps library (Python) adopted by 4 other teams"
+      tech_stack:
+        - Python
+        - PyTorch
+        - Kafka
+        - Redis
+        - Airflow
+        - Scikit-learn
+        - AWS SageMaker
+
+    - company: "Finaxe Solutions"
+      role: "Python Developer"
+      location: "Pune, India"
+      start_date: "Aug 2020"
+      end_date: "Jun 2021"
+      description: >
+        Developed backend APIs and data pipelines for a fintech platform
+        processing ₹200Cr/month in transactions.
+      bullets:
+        - "Built 15+ REST API endpoints using FastAPI; served 2M+ requests/day with <50ms p99 latency"
+        - "Implemented asynchronous transaction processing with Celery + RabbitMQ"
+        - "Reduced DB query time by 70% through index optimisation and query refactoring"
+        - "Integrated third-party payment gateways (Razorpay, PayU) with retry and idempotency"
+      tech_stack:
+        - Python
+        - FastAPI
+        - PostgreSQL
+        - Celery
+        - RabbitMQ
+        - Docker
+
+  # ── Education ────────────────────────────────────────────────────────────────
+  education:
+    - institution: "National Institute of Technology, Trichy"
+      degree: "B.Tech in Computer Science and Engineering"
+      graduation_year: 2020
+      gpa: "8.7 / 10"
+      relevant_courses:
+        - "Machine Learning"
+        - "Natural Language Processing"
+        - "Distributed Systems"
+        - "Algorithms and Data Structures"
+
+  # ── Certifications ───────────────────────────────────────────────────────────
+  certifications:
+    - name: "Google Professional ML Engineer"
+      issuer: "Google Cloud"
+      year: 2023
+      url: "https://cloud.google.com/certification/machine-learning-engineer"
+
+    - name: "AWS Certified Solutions Architect – Associate"
+      issuer: "Amazon Web Services"
+      year: 2022
+      url: "https://aws.amazon.com/certification/solutions-architect-associate/"
+
+    - name: "DeepLearning.AI — LLMOps Specialisation"
+      issuer: "Coursera / DeepLearning.AI"
+      year: 2023
+      url: "https://deeplearning.ai"
+
+  # ── Projects ────────────────────────────────────────────────────────────────
+  projects:
+    - name: "DocuChat — Open-Source RAG Framework"
+      url: "https://github.com/arjunmehta/docuchat"
+      description: >
+        A production-ready RAG framework with pluggable retrievers (BM25, FAISS,
+        Pinecone), streaming responses, and a React UI. 800+ GitHub stars.
+      tech:
+        - Python
+        - LangChain
+        - FAISS
+        - FastAPI
+        - React
+
+    - name: "LLM Router — Cost-Optimised Multi-Model Proxy"
+      url: "https://github.com/arjunmehta/llm-router"
+      description: >
+        Intelligent proxy that routes LLM requests across Gemini / GPT-4 / Claude
+        based on task complexity, latency SLA, and cost budget.
+      tech:
+        - Python
+        - FastAPI
+        - Redis
+
+    - name: "AutoApply — Job Application Automation"
+      url: "https://github.com/arjunmehta/autoapply"
+      description: >
+        Personal job application bot (this project!) for automated discovery,
+        tailored resume generation, and auto-apply across LinkedIn and Naukri.
+      tech:
+        - Python
+        - Playwright
+        - Gemini API
+        - Google Sheets
+
+  # ── Achievements ─────────────────────────────────────────────────────────────
+  achievements:
+    - "Won 1st place at HackAI Bangalore 2023 (LLM-based legal document summariser)"
+    - "Speaker at PyCon India 2022 — 'Production RAG Pipelines: Lessons Learned'"
+    - "Contributed to LangChain open-source (merged 4 PRs, 1.2k GitHub stars)"
+    - "Top 5% on Kaggle NLP track (username: arjunmehta_ml)"
