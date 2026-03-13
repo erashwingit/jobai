@@ -39,7 +39,7 @@ async def run_discovery_module() -> list[dict]:
 
     profile = load_profile()
 
-    # Step 1: Scrape portals
+    # Step 1: Scrape portals (LinkedIn, Naukri, Indeed — AngelList removed)
     raw_jobs = await scrape_all_portals()
     logger.info(f"Scraped: {len(raw_jobs)} raw jobs")
 
@@ -58,19 +58,27 @@ async def run_discovery_module() -> list[dict]:
 
 
 def run_resume_module(queued_jobs: list[dict]) -> list[dict]:
-    """Module 2: Tailor resumes → compile PDFs → ATS score."""
+    """Module 2: Tailor resumes → compile PDFs via Puppeteer service → ATS score."""
     logger.info("=" * 50)
     logger.info("MODULE 2: Resume Tailoring Engine")
     logger.info("=" * 50)
 
     import json
     from modules.resume.tailoring_engine import tailor_resume, save_tailored_resume
-    from modules.resume.latex_compiler import compile_resume
+    from modules.resume.resume_renderer import compile_resume, is_pdf_service_healthy
     from modules.resume.ats_scorer import (
         extract_text_from_pdf, calculate_ats_score, meets_threshold
     )
     from modules.application.human_checkpoint import flag_for_human, REASON_RESUME_FAILED
     from shared.database import update_job_status, get_db
+
+    # Validate PDF service is reachable before processing any jobs
+    if not is_pdf_service_healthy():
+        logger.error(
+            "PDF microservice is not running. "
+            "Start with: cd services/pdf-service && node index.js"
+        )
+        return []
 
     ready_jobs = []
     settings = load_settings()
@@ -96,12 +104,12 @@ def run_resume_module(queued_jobs: list[dict]) -> list[dict]:
         pdf_path = None
         for attempt in range(max_retries + 1):
             try:
-                # Tailor resume
+                # Tailor resume YAML
                 tailored = tailor_resume(job, jd_parsed)
-                yaml_path = save_tailored_resume(tailored, company, role)
+                save_tailored_resume(tailored, company, role)
 
-                # Compile to PDF
-                pdf_path = compile_resume(yaml_path, company, role)
+                # Compile to PDF via Puppeteer microservice
+                pdf_path = compile_resume(tailored, company, role)
                 if not pdf_path:
                     continue
 
@@ -110,17 +118,18 @@ def run_resume_module(queued_jobs: list[dict]) -> list[dict]:
                 ats_result = calculate_ats_score(resume_text, jd_parsed)
 
                 if meets_threshold(ats_result):
-                    # Save PDF path to applications table
+                    # Record in dedup cache with PDF path
                     with get_db() as conn:
                         conn.execute(
-                            "INSERT OR IGNORE INTO applications (app_id, job_id, pdf_path, ats_score, status) "
-                            "VALUES (?, ?, ?, ?, 'READY')",
-                            (__import__('uuid').uuid4().hex, job_id, str(pdf_path), ats_result["total_score"])
+                            "UPDATE seen_jobs SET status='RESUME_READY' WHERE job_id=?",
+                            (job_id,)
                         )
 
                     update_job_status(job_id, "RESUME_READY")
                     ready_jobs.append({**job, "pdf_path": str(pdf_path)})
-                    logger.info(f"Resume ready: {company} | {role} | ATS={ats_result['total_score']}")
+                    logger.info(
+                        f"Resume ready: {company} | {role} | ATS={ats_result['total_score']}"
+                    )
                     break
                 else:
                     logger.warning(
@@ -142,7 +151,7 @@ def run_resume_module(queued_jobs: list[dict]) -> list[dict]:
 
 
 async def run_application_module(ready_jobs: list[dict], dry_run: bool = False) -> dict:
-    """Module 3: Auto-apply to jobs via portal bots."""
+    """Module 3: Auto-apply to jobs via portal bots (LinkedIn, Naukri, Indeed)."""
     logger.info("=" * 50)
     logger.info("MODULE 3: Auto-Application Bot")
     logger.info("=" * 50)
@@ -157,14 +166,24 @@ async def run_application_module(ready_jobs: list[dict], dry_run: bool = False) 
 
 
 def run_email_monitor() -> dict:
-    """Module 4: Check Gmail for interview invites/rejections."""
+    """
+    Module 4: Email monitoring is handled by n8n workflow.
+    This stub triggers a manual Gmail check for non-n8n runs.
+    See n8n/email_monitor_workflow.json for the automated workflow.
+    """
     logger.info("=" * 50)
     logger.info("MODULE 4: Email Monitor & Tracker Update")
     logger.info("=" * 50)
+    logger.info("NOTE: Email monitoring runs automatically via n8n every 30 minutes.")
+    logger.info("For manual run, trigger n8n workflow or run email_parser directly.")
 
-    from modules.tracker.email_parser import run_email_monitor
-    stats = run_email_monitor()
-    return stats
+    try:
+        from modules.tracker.email_parser import run_email_monitor
+        stats = run_email_monitor()
+        return stats
+    except Exception as e:
+        logger.error(f"Email monitor error: {e}")
+        return {"processed": 0, "error": str(e)}
 
 
 def run_interview_prep(job_id: str | None = None) -> None:
@@ -181,14 +200,14 @@ def run_interview_prep(job_id: str | None = None) -> None:
     if job_id:
         from shared.database import get_db
         with get_db() as conn:
-            row = conn.execute("SELECT * FROM jobs WHERE job_id=?", (job_id,)).fetchone()
+            row = conn.execute("SELECT * FROM seen_jobs WHERE job_id=?", (job_id,)).fetchone()
         jobs = [dict(row)] if row else []
     else:
         jobs = get_jobs_by_status("INTERVIEW_SCHEDULED")
 
     for job in jobs:
         try:
-            # Supplement with Glassdoor data
+            # Supplement with direct Glassdoor scraping (no Apify)
             glassdoor_data = scrape_glassdoor_interviews(job["company"])
 
             # Generate prep sheet

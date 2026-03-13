@@ -1,0 +1,276 @@
+{
+  "name": "Ashvani Job Bot — Email Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 */30 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Every 30 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": 50,
+        "filters": {
+          "q": "subject:(interview OR application OR offer OR rejected OR shortlisted OR congratulations) is:unread newer_than:1d",
+          "labelIds": ["INBOX"]
+        },
+        "options": {
+          "format": "full"
+        }
+      },
+      "id": "gmail-fetch",
+      "name": "Fetch Job Emails",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail-creds",
+          "name": "Gmail OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse each email to extract status, company, and job details\nconst emails = $input.all();\nconst results = [];\n\nfor (const item of emails) {\n  const msg = item.json;\n  const subject = (msg.payload?.headers?.find(h => h.name === 'Subject')?.value || '').toLowerCase();\n  const from = (msg.payload?.headers?.find(h => h.name === 'From')?.value || '').toLowerCase();\n  const body = msg.snippet?.toLowerCase() || '';\n  const combined = subject + ' ' + body;\n\n  let status = null;\n  let company = '';\n\n  // Extract company from From header (domain heuristic)\n  const fromMatch = from.match(/@([a-zA-Z0-9-]+)\\.);\n  if (fromMatch) {\n    company = fromMatch[1].charAt(0).toUpperCase() + fromMatch[1].slice(1);\n  }\n\n  // Classify status\n  if (/interview|schedule|call|meeting|zoom|teams|google meet/.test(combined)) {\n    status = 'INTERVIEW_SCHEDULED';\n  } else if (/offer|congratulations|pleased to inform|selected|hired/.test(combined)) {\n    status = 'OFFER_RECEIVED';\n  } else if (/reject|unfortunately|not moving forward|not selected|other candidate/.test(combined)) {\n    status = 'REJECTED';\n  } else if (/received|application|thank you for applying|under review/.test(combined)) {\n    status = 'APPLIED';\n  }\n\n  if (status) {\n    results.push({\n      json: {\n        messageId: msg.id,\n        threadId: msg.threadId,\n        subject: msg.payload?.headers?.find(h => h.name === 'Subject')?.value || '',\n        from,\n        company,\n        status,\n        snippet: msg.snippet,\n        date: msg.payload?.headers?.find(h => h.name === 'Date')?.value || new Date().toISOString()\n      }\n    });\n  }\n}\n\nreturn results;"
+      },
+      "id": "parse-emails",
+      "name": "Parse Email Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false
+          },
+          "conditions": [
+            {
+              "id": "has-status",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ]
+        }
+      },
+      "id": "filter-classified",
+      "name": "Only Classified Emails",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.SHEETS_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Applications",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "={{ $json.status }}",
+            "Notes": "={{ $json.snippet }}"
+          }
+        },
+        "options": {
+          "locationDefine": "specifyRangeA1",
+          "rangeA1": "A:J",
+          "handlingExtraData": "ignoreIt"
+        }
+      },
+      "id": "update-sheets",
+      "name": "Update Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.2,
+      "position": [1120, 200],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sheets-creds",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "is-interview",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "INTERVIEW_SCHEDULED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "filter-interviews",
+      "name": "Is Interview?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 1,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.PIPELINE_WEBHOOK_URL || 'http://localhost:8000/webhook/prep' }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "company",
+              "value": "={{ $json.company }}"
+            },
+            {
+              "name": "status",
+              "value": "={{ $json.status }}"
+            },
+            {
+              "name": "subject",
+              "value": "={{ $json.subject }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "trigger-prep",
+      "name": "Trigger Interview Prep",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1340, 400]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "=🤖 *Job Update*\n\n📧 *{{ $json.company }}*\n📌 Status: `{{ $json.status }}`\n📋 {{ $json.subject }}\n\n_Tracker updated automatically_",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram-notify",
+      "name": "Telegram Notification",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [1340, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-creds",
+          "name": "Telegram Bot API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every 30 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Fetch Job Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Job Emails": {
+      "main": [
+        [
+          {
+            "node": "Parse Email Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Email Status": {
+      "main": [
+        [
+          {
+            "node": "Only Classified Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Only Classified Emails": {
+      "main": [
+        [
+          {
+            "node": "Update Google Sheets",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is Interview?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Telegram Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Interview?": {
+      "main": [
+        [
+          {
+            "node": "Trigger Interview Prep",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": ["job-bot", "email-monitor"],
+  "triggerCount": 1,
+  "updatedAt": "2026-03-13T00:00:00.000Z",
+  "versionId": "1"
+}

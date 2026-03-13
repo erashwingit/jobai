@@ -1,136 +1,90 @@
 """
-modules/application/naukri_bot.py — Naukri Quick Apply automation.
-Targets the Quick Apply button on Naukri job listings.
+modules/application/naukri_bot.py — Naukri Quick Apply via submitter microservice.
+Security: Cookie-based sessions ONLY — NO password authentication.
 """
+import os
 from pathlib import Path
-from playwright.async_api import Page
 
-from modules.application.browser_config import human_delay, human_type
-from modules.application.human_checkpoint import flag_for_human, REASON_CAPTCHA
-from modules.application.session_manager import save_session
-from shared.credential_manager import get_credential
+import httpx
+
+from modules.application.human_checkpoint import flag_for_human
+from shared.session_manager import check_cookie_health
 from shared.database import update_job_status
 from shared.telegram_notifier import notify_applied
 from shared.logger import get_logger
 
 logger = get_logger(__name__)
 
-NAUKRI_LOGIN_URL = "https://www.naukri.com/nlogin/login"
+SUBMITTER_URL = os.getenv("SUBMITTER_SERVICE_URL", "http://localhost:3002")
 
 
 class NaukriBot:
-    """Automates Naukri Quick Apply job applications."""
+    """
+    Naukri Quick Apply bot — delegates to the Node.js submitter microservice.
+    Pre-flight checks cookie health before making service calls.
+    """
 
-    def __init__(self, page: Page, context):
-        self.page = page
-        self.context = context
-        self.is_logged_in = False
+    def __init__(self, *args, **kwargs):
+        pass
 
-    async def login(self) -> bool:
-        """Log into Naukri."""
-        try:
-            await self.page.goto(NAUKRI_LOGIN_URL, wait_until="networkidle", timeout=30000)
-            await human_delay(1, 2)
-
-            # Check if already logged in
-            profile_icon = await self.page.query_selector(".nI-gNb-user-info__picture")
-            if profile_icon:
-                self.is_logged_in = True
-                return True
-
-            email = get_credential("naukri", "email")
-            password = get_credential("naukri", "password")
-
-            await human_type(self.page, "#usernameField", email)
-            await human_delay(0.5, 1)
-            await human_type(self.page, "#passwordField", password)
-            await human_delay(0.5, 1)
-
-            await self.page.click(".loginButton")
-            await self.page.wait_for_load_state("networkidle", timeout=15000)
-            await human_delay(2, 3)
-
-            # Verify login
-            profile_icon = await self.page.query_selector(".nI-gNb-user-info__picture")
-            if profile_icon:
-                self.is_logged_in = True
-                await save_session(self.context, "naukri")
-                logger.info("Naukri: Login successful")
-                return True
-
-            logger.warning("Naukri: Login verification failed")
+    def preflight_check(self) -> bool:
+        """Verify Naukri cookies are valid before attempting applications."""
+        health = check_cookie_health("naukri")
+        if not health["valid"]:
+            logger.error(f"Naukri cookie check failed: {health['message']}")
             return False
-
-        except Exception as e:
-            logger.error(f"Naukri login failed: {e}")
-            return False
+        logger.info(f"Naukri cookies OK — expires: {health['expires_at']}")
+        return True
 
     async def apply_to_job(self, job: dict, pdf_path: Path) -> bool:
-        """Apply to a Naukri job using Quick Apply."""
+        """Apply to a Naukri job via the submitter microservice."""
         job_id = job["job_id"]
         company = job["company"]
         role = job["role"]
         url = job["jd_url"]
 
-        if not self.is_logged_in:
-            if not await self.login():
-                flag_for_human(job_id, company, role, url, "Naukri login failed")
-                return False
+        if not self.preflight_check():
+            flag_for_human(
+                job_id, company, role, url,
+                "Naukri session cookies expired. Run: node tools/export-cookies.js"
+            )
+            return False
 
         try:
-            await self.page.goto(url, wait_until="networkidle", timeout=30000)
-            await human_delay(2, 4)
-
-            # Check for CAPTCHA
-            captcha = await self.page.query_selector(".g-recaptcha")
-            if captcha:
-                flag_for_human(job_id, company, role, url, REASON_CAPTCHA)
-                return False
-
-            # Look for Apply / Quick Apply button
-            apply_btn = await self.page.query_selector(
-                "button.apply-button, #apply-button, .apply-btn"
+            response = httpx.post(
+                f"{SUBMITTER_URL}/submit",
+                json={
+                    "portal": "naukri",
+                    "job_url": url,
+                    "job_id": job_id,
+                    "company": company,
+                    "role": role,
+                    "resume_path": str(pdf_path.resolve()),
+                },
+                timeout=120.0,
             )
+            result = response.json()
 
-            if not apply_btn:
-                flag_for_human(job_id, company, role, url, "No apply button found")
-                return False
-
-            await apply_btn.click()
-            await human_delay(2, 3)
-
-            # Handle modal if it appears
-            modal = await self.page.query_selector(".apply-modal, #apply-widget")
-            if modal:
-                # Try to upload resume
-                upload = await self.page.query_selector("input[type='file']")
-                if upload:
-                    await upload.set_input_files(str(pdf_path))
-                    await human_delay(1, 2)
-
-                # Submit
-                submit_btn = await self.page.query_selector(
-                    "button[type='submit'], .submit-btn"
-                )
-                if submit_btn:
-                    await submit_btn.click()
-                    await human_delay(2, 3)
-
-            # Verify success
-            success_el = await self.page.query_selector(
-                ".success-message, .applied-tag, [class*='success']"
-            )
-            if success_el:
-                update_job_status(job_id, "APPLIED")
-                notify_applied(company, role, "naukri")
-                logger.info(f"Naukri: Applied to {company} | {role}")
-                return True
-
-            # Uncertain — flag for human verification
-            flag_for_human(job_id, company, role, url, "Application outcome uncertain")
+        except httpx.ConnectError:
+            logger.error(f"Submitter service unreachable at {SUBMITTER_URL}")
+            flag_for_human(job_id, company, role, url, "Submitter service not running")
+            return False
+        except httpx.TimeoutException:
+            flag_for_human(job_id, company, role, url, "Submitter service timeout")
             return False
 
-        except Exception as e:
-            logger.error(f"Naukri apply failed for {job_id}: {e}")
-            flag_for_human(job_id, company, role, url, f"Error: {type(e).__name__}")
+        if result.get("error") == "CookieExpiredError":
+            flag_for_human(
+                job_id, company, role, url,
+                "Naukri session expired. Run: node tools/export-cookies.js"
+            )
             return False
+
+        if result.get("success"):
+            update_job_status(job_id, "APPLIED", notes="Naukri Quick Apply via submitter")
+            notify_applied(company, role, "naukri")
+            logger.info(f"Naukri: Applied to {company} | {role}")
+            return True
+
+        flag_for_human(job_id, company, role, url, result.get("message", "Unknown failure"))
+        return False

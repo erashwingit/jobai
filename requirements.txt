@@ -23,18 +23,19 @@ google-api-python-client==2.120.0
 google-generativeai==0.5.2
 groq==0.5.0
 
-# --- Resume / LaTeX ---
-rendercv==1.7
+# --- Resume Templating (replaces rendercv/LaTeX) ---
 Jinja2==3.1.3
+
+# --- Security / Encryption ---
+cryptography==42.0.5
+keyring==25.1.0
+detect-secrets==1.4.0
+bandit==1.7.7
 
 # --- Data Handling ---
 jsonschema==4.21.1
 pandas==2.2.1
-
-# --- Security ---
-keyring==25.1.0
-detect-secrets==1.4.0
-bandit==1.7.7
+PyMuPDF==1.24.0
 
 # --- Notifications ---
 python-telegram-bot==21.1.1

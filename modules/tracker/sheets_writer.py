@@ -209,3 +209,18 @@ def _save_to_retry_queue(operation: str, data: dict) -> None:
         json.dump(queue, f, indent=2)
 
     logger.info(f"Saved failed Sheets operation to retry queue")
+
+
+def update_status(job_id: str, status: str) -> bool:
+    """
+    Convenience alias: update only the status column for a job.
+    Called by shared.database.update_job_status() to keep Sheets in sync.
+
+    Args:
+        job_id: Job ID to locate in the tracker
+        status: New status string (e.g., 'APPLIED', 'INTERVIEW_SCHEDULED')
+
+    Returns:
+        True if updated successfully
+    """
+    return update_application_status(job_id, status)

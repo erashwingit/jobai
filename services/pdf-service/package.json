@@ -1,0 +1,18 @@
+{
+  "name": "pdf-service",
+  "version": "1.0.0",
+  "description": "Puppeteer-based PDF generation microservice for Ashvani Job Bot",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.3",
+    "puppeteer": "^22.4.0",
+    "nunjucks": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

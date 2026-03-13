@@ -1,0 +1,100 @@
+# ============================================================
+# docker-compose.yml — Ashvani Job Bot microservices stack
+#
+# Services:
+#   pdf-service    — Node.js + Puppeteer → PDF generation (port 3001)
+#   submitter      — Node.js + Playwright stealth → portal submission (port 3002)
+#   job-bot        — Python pipeline orchestrator
+#
+# Usage:
+#   docker compose up -d pdf-service submitter   # Start microservices only
+#   docker compose up                            # Full stack
+#   docker compose logs -f job-bot               # Follow pipeline logs
+# ============================================================
+
+version: "3.9"
+
+services:
+  # ── PDF Microservice ──────────────────────────────────────
+  pdf-service:
+    build:
+      context: ./services/pdf-service
+      dockerfile: Dockerfile
+    container_name: ashvani-pdf-service
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - jobbot-net
+
+  # ── Submitter Microservice ────────────────────────────────
+  submitter:
+    build:
+      context: ./services/submitter
+      dockerfile: Dockerfile
+    container_name: ashvani-submitter
+    restart: unless-stopped
+    ports:
+      - "3002:3002"
+    environment:
+      NODE_ENV: production
+      PORT: "3002"
+      COOKIE_SECRET: ${COOKIE_SECRET}
+      COOKIES_PATH: /cookies/cookies.enc
+    volumes:
+      # Mount encrypted cookie file (created by tools/export-cookies.js)
+      - type: bind
+        source: ${COOKIES_PATH:-~/.config/ashvani-job-bot/cookies.enc}
+        target: /cookies/cookies.enc
+        read_only: true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      pdf-service:
+        condition: service_healthy
+    networks:
+      - jobbot-net
+
+  # ── Python Pipeline Orchestrator ─────────────────────────
+  job-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ashvani-job-bot
+    restart: "no"
+    env_file:
+      - .env
+    environment:
+      PDF_SERVICE_URL: http://pdf-service:3001
+      SUBMITTER_SERVICE_URL: http://submitter:3002
+    volumes:
+      - ./config:/app/config:ro
+      - ./resumes:/app/resumes
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ${GOOGLE_CREDENTIALS_JSON:-~/.config/ashvani-job-bot/credentials.json}:/app/credentials.json:ro
+    depends_on:
+      pdf-service:
+        condition: service_healthy
+      submitter:
+        condition: service_healthy
+    command: ["python", "scripts/run_pipeline.py", "--module", "all"]
+    networks:
+      - jobbot-net
+
+networks:
+  jobbot-net:
+    driver: bridge
